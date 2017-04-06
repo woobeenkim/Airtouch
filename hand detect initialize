@@ -1,6 +1,6 @@
 void initilize()
 {
-	// sensmanager 생성
+	// sensemanager 생성
 	senseManager = PXCSense Manager::CreateInstance();
 	if(senseManager -- nullptr)
 	{
