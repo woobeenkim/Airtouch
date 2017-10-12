@@ -1,4 +1,4 @@
-// DepthMap-SR300.cpp : ì½˜ì†” ì‘ìš© í”„ë¡œê·¸ëž¨ì— ëŒ€í•œ ì§„ìž…ì ì„ ì •ì˜í•©ë‹ˆë‹¤.
+// DepthMap-SR300.cpp : ÄÜ¼Ö ÀÀ¿ë ÇÁ·Î±×·¥¿¡ ´ëÇÑ ÁøÀÔÁ¡À» Á¤ÀÇÇÕ´Ï´Ù.
 //
 
 #include "DepthMap-SR300.h"
@@ -11,17 +11,17 @@
 #include "pxcprojection.h"
 
 
-// REALSENSE ì¹´ë©”ë¼ ì„¤ì • ê´€ë ¨ ì „ì—­ ë³€ìˆ˜
+// REALSENSE Ä«¸Þ¶ó ¼³Á¤ °ü·Ã Àü¿ª º¯¼ö
 PXCSenseManager *g_pp = PXCSenseManager::CreateInstance();					// Creates an instance of the PXCSenseManager
 PXCMetadata *g_md = g_pp->QuerySession()->QueryInstance<PXCMetadata>();		// Optional steps to send feedback to Intel Corporation to understand how often each SDK sample is used.
 UtilCmdLine g_cmdl(g_pp->QuerySession());									// Collects command line arguments
 PXCCaptureManager *g_cm=g_pp->QueryCaptureManager();						// Sets file recording or playback
 //UtilRender renderc(L"Color"), g_renderd(L"Depth"), renderi(L"IR"), renderr(L"Right"), renderl(L"Left");	// Create stream renders
 UtilRender g_renderd(L"Depth");												// Create stream renders
-pxcStatus g_sts;															// REALSENSE ì¹´ë©”ë¼ ìƒíƒœì €ìž¥ ë³€ìˆ˜
-PXCProjection	*g_projection;												// í”„ë¡œì ì…˜ ì—°ì‚°ì„ ìœ„í•œ ë³€ìˆ˜ ì„ ì–¸
-PXCPoint3DF32	*g_vertices;												// ë²„í‹°ìŠ¤ ê°’ì´ ì €ìž¥ë  ë³€ìˆ˜ ì„ ì–¸
-//pxcI32			*g_buffer;												// REAL SENSE Depth ì´ë¯¸ì§€ ê°’ì´ ì €ìž¥ë  ë²„í¼ ì„ ì–¸
+pxcStatus g_sts;															// REALSENSE Ä«¸Þ¶ó »óÅÂÀúÀå º¯¼ö
+PXCProjection	*g_projection;												// ÇÁ·ÎÁ§¼Ç ¿¬»êÀ» À§ÇÑ º¯¼ö ¼±¾ð
+PXCPoint3DF32	*g_vertices;												// ¹öÆ¼½º °ªÀÌ ÀúÀåµÉ º¯¼ö ¼±¾ð
+//pxcI32			*g_buffer;												// REAL SENSE Depth ÀÌ¹ÌÁö °ªÀÌ ÀúÀåµÉ ¹öÆÛ ¼±¾ð
 
 CvPoint captured;
 CvPoint pt;
@@ -30,58 +30,58 @@ double y_prev;
 
 double alpha=0.1;
 
-//ì†ë°”ë‹¥ì˜ ì¤‘ì‹¬ì ê³¼ ë°˜ì§€ë¦„ ë°˜í™˜
-//ìž…ë ¥ì€ 8bit ë‹¨ì¼ ì±„ë„(CV_8U), ë°˜ì§€ë¦„ì„ ì €ìž¥í•  doubleí˜• ë³€ìˆ˜
+//¼Õ¹Ù´ÚÀÇ Áß½ÉÁ¡°ú ¹ÝÁö¸§ ¹ÝÈ¯
+//ÀÔ·ÂÀº 8bit ´ÜÀÏ Ã¤³Î(CV_8U), ¹ÝÁö¸§À» ÀúÀåÇÒ doubleÇü º¯¼ö
 CvPoint getHandCenter(IplImage * mask) {
-	//ê±°ë¦¬ ë³€í™˜ í–‰ë ¬ì„ ì €ìž¥í•  ë³€ìˆ˜
+	//°Å¸® º¯È¯ Çà·ÄÀ» ÀúÀåÇÒ º¯¼ö
 	IplImage *dst = cvCreateImage(cvGetSize(mask), CV_32SC1, 1);
-	cvDistTransform( mask, dst, CV_DIST_L2, 5);  //ê²°ê³¼ëŠ” CV_32SC1 íƒ€ìž…
+	cvDistTransform( mask, dst, CV_DIST_L2, 5);  //°á°ú´Â CV_32SC1 Å¸ÀÔ
 
 	cvShowImage("aa", dst);
 	cvWaitKey(1);
-												  //ê±°ë¦¬ ë³€í™˜ í–‰ë ¬ì—ì„œ ê°’(ê±°ë¦¬)ì´ ê°€ìž¥ í° í”½ì…€ì˜ ì¢Œí‘œì™€, ê°’ì„ ì–»ì–´ì˜¨ë‹¤.
-	CvPoint maxIdx;    //ì¢Œí‘œ ê°’ì„ ì–»ì–´ì˜¬ ë°°ì—´(í–‰, ì—´ ìˆœìœ¼ë¡œ ì €ìž¥ë¨)
-	cvMinMaxLoc(dst, NULL, NULL,&maxIdx,NULL);   //ìµœì†Œê°’ì€ ì‚¬ìš© X
+												  //°Å¸® º¯È¯ Çà·Ä¿¡¼­ °ª(°Å¸®)ÀÌ °¡Àå Å« ÇÈ¼¿ÀÇ ÁÂÇ¥¿Í, °ªÀ» ¾ò¾î¿Â´Ù.
+	CvPoint maxIdx;    //ÁÂÇ¥ °ªÀ» ¾ò¾î¿Ã ¹è¿­(Çà, ¿­ ¼øÀ¸·Î ÀúÀåµÊ)
+	cvMinMaxLoc(dst, NULL, NULL,&maxIdx,NULL);   //ÃÖ¼Ò°ªÀº »ç¿ë X
 
 	return maxIdx;
 }
 
 
 
-// Mainë¬¸ ì‹œìž‘
+// Main¹® ½ÃÀÛ
 int _tmain(int argc, _TCHAR* argv[])
 {
-	ReadSettingsFromINI();			// INI íŒŒì¼ì— ì„¤ì •ëœ ì„¤ì •ê°’ ì½ì–´ë“œë¦¼
-	InitProgram();					// í”„ë¡œê·¸ëž¨ ì‹œìž‘ ì„¤ì •ê°’ìœ¼ë¡œ ì´ˆê¸°í™”
+	ReadSettingsFromINI();			// INI ÆÄÀÏ¿¡ ¼³Á¤µÈ ¼³Á¤°ª ÀÐ¾îµå¸²
+	InitProgram();					// ÇÁ·Î±×·¥ ½ÃÀÛ ¼³Á¤°ªÀ¸·Î ÃÊ±âÈ­
 	
-	// Esc í‚¤ê°€ ëˆŒë¦¬ê¸° ì „ê¹Œì§€ ë£¨í”„ ì‹¤í–‰
+	// Esc Å°°¡ ´­¸®±â Àü±îÁö ·çÇÁ ½ÇÇà
 	while( g_bRun )
 	{
-		g_nTime = GetTickCount();	// í˜„ìž¬ ì‹œê°„ì„ ms ë‹¨ìœ„ë¡œ ì €ìž¥
-		GetDepthFrame();			// REALSENSE ì¹´ë©”ë¼ì—ì„œ Depth í•œ í”„ë ˆìž„ ë°›ì•„ì˜´
-		GetDepthRanged();			// Depth ì´ë¯¸ì§€ë¥¼ ê±°ë¦¬ì— ë”°ë¥¸ íŒ€í‘œì¤€ 8Bit Depth ì´ë¯¸ì§€ë¡œ ë³€í™˜
-		GetBinary();				// 8Bit Depth ì´ë¯¸ì§€ë¥¼ ì´ì§„ ì´ë¯¸ì§€ë¡œ ë³€í™˜
-		ImageView();				// í˜„ìž¬ ì´ë¯¸ì§€ë“¤ì„ ë³´ì—¬ì¤Œ
-		CalcTime();					// Main ë£¨í”„ë¥¼ í•œë²ˆ ë„ëŠ”ë° ê±¸ë¦¬ëŠ” ì‹œê°„ì„ ê³„ì‚°
+		g_nTime = GetTickCount();	// ÇöÀç ½Ã°£À» ms ´ÜÀ§·Î ÀúÀå
+		GetDepthFrame();			// REALSENSE Ä«¸Þ¶ó¿¡¼­ Depth ÇÑ ÇÁ·¹ÀÓ ¹Þ¾Æ¿È
+		GetDepthRanged();			// Depth ÀÌ¹ÌÁö¸¦ °Å¸®¿¡ µû¸¥ ÆÀÇ¥ÁØ 8Bit Depth ÀÌ¹ÌÁö·Î º¯È¯
+		GetBinary();				// 8Bit Depth ÀÌ¹ÌÁö¸¦ ÀÌÁø ÀÌ¹ÌÁö·Î º¯È¯
+		ImageView();				// ÇöÀç ÀÌ¹ÌÁöµéÀ» º¸¿©ÁÜ
+		CalcTime();					// Main ·çÇÁ¸¦ ÇÑ¹ø µµ´Âµ¥ °É¸®´Â ½Ã°£À» °è»ê
 	}
 
-	ExitProgram();					// í”„ë¡œê·¸ëž¨ ì¢…ë£Œí•  ë•Œ ë³€ìˆ˜ ë©”ëª¨ë¦¬ ë° ìž¥ì¹˜ í•´ì œí•˜ê¸° ìœ„í•´
+	ExitProgram();					// ÇÁ·Î±×·¥ Á¾·áÇÒ ¶§ º¯¼ö ¸Þ¸ð¸® ¹× ÀåÄ¡ ÇØÁ¦ÇÏ±â À§ÇØ
 	return 0;
 }
 
 
-// INI íŒŒì¼ì— ì„¤ì •ëœ ì„¤ì •ê°’ ì½ì–´ë“œë¦¼
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// INI ÆÄÀÏ¿¡ ¼³Á¤µÈ ¼³Á¤°ª ÀÐ¾îµå¸²
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void ReadSettingsFromINI()
 {
 	puts( "INI is Setting" );
 	TCHAR path[512];
-	GetCurrentDirectory(512, path);		// í”„ë¡œì íŠ¸ ê²½ë¡œ
-	//strcat(path, "\\program.ini");	// í”„ë¡œì íŠ¸ ê²½ë¡œ ë³µì‚¬(ë©€í‹° ë°”ì´íŠ¸ í˜•ì‹)
-	wcscat(path, L"\\program.ini");		// í”„ë¡œì íŠ¸ ê²½ë¡œ ë³µì‚¬(ìœ ë‹ˆì½”ë“œ í˜•ì‹)
+	GetCurrentDirectory(512, path);		// ÇÁ·ÎÁ§Æ® °æ·Î
+	//strcat(path, "\\program.ini");	// ÇÁ·ÎÁ§Æ® °æ·Î º¹»ç(¸ÖÆ¼ ¹ÙÀÌÆ® Çü½Ä)
+	wcscat(path, L"\\program.ini");		// ÇÁ·ÎÁ§Æ® °æ·Î º¹»ç(À¯´ÏÄÚµå Çü½Ä)
 
-	// INI íŒŒì¼ë¡œë¶€í„° ì„¤ì • ê°’ ë°›ì•„ì˜´
+	// INI ÆÄÀÏ·ÎºÎÅÍ ¼³Á¤ °ª ¹Þ¾Æ¿È
 	//GetPrivateProfileString( TEXT("Setting"), TEXT("IP"), TEXT("Fail"), g_strIpAddress, 256, path );
 	g_nFPS = GetPrivateProfileInt( TEXT("Setting"), TEXT("FPS"), -1, path );
 	g_uRangeMin = GetPrivateProfileInt( TEXT("Setting"), TEXT("DepthMin"), -1, path );
@@ -90,7 +90,7 @@ void ReadSettingsFromINI()
 	g_uThresholdMax = GetPrivateProfileInt( TEXT("Setting"), TEXT("ThresBinaryMax"), -1, path );
 	g_nFlagMirrorDepth = GetPrivateProfileInt( TEXT("Setting"), TEXT("FlagMirrorDepth"), -1, path );
 
-	// INI íŒŒì¼ë¡œë¶€í„° ë°›ì•„ì˜¨ ì •ë³´ ì¶œë ¥
+	// INI ÆÄÀÏ·ÎºÎÅÍ ¹Þ¾Æ¿Â Á¤º¸ Ãâ·Â
 	printf( "FPS : %d\n", g_nFPS );
 	printf( "DepthMin : %d\n", g_uRangeMin );
 	printf( "DepthMax : %d\n", g_uRangeMax );
@@ -101,36 +101,36 @@ void ReadSettingsFromINI()
 }
 
 
-// í”„ë¡œê·¸ëž¨ ì‹œìž‘ ì„¤ì •ê°’ìœ¼ë¡œ ì´ˆê¸°í™”
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// ÇÁ·Î±×·¥ ½ÃÀÛ ¼³Á¤°ªÀ¸·Î ÃÊ±âÈ­
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void InitProgram()
 {
 	puts( "Program is Initilizing" );
-	InitRealSense();			// REALSENSE ì¹´ë©”ë¼ ì´ˆê¸°í™”
+	InitRealSense();			// REALSENSE Ä«¸Þ¶ó ÃÊ±âÈ­
 
-	// ì´ë¯¸ì§€ ë³€ìˆ˜ ìƒì„±
+	// ÀÌ¹ÌÁö º¯¼ö »ý¼º
 	g_imgDepth = cvCreateImage( cvSize(IMAGE_WIDTH, IMAGE_HEIGHT), 16, 1 );
 	g_imgDepthRangedGray = cvCreateImage( cvSize(IMAGE_WIDTH, IMAGE_HEIGHT), 8, 1 );
 	g_imgBinary = cvCreateImage( cvSize(IMAGE_WIDTH, IMAGE_HEIGHT), 8, 1 );
 	g_imgHand = cvCreateImage( cvSize(IMAGE_WIDTH, IMAGE_HEIGHT), 8, 1 );
 	
-	// ì´ë¯¸ì§€ ë³€ìˆ˜ ì´ˆê¸°í™”
+	// ÀÌ¹ÌÁö º¯¼ö ÃÊ±âÈ­
 	cvZero( g_imgDepth );
 	cvZero( g_imgDepthRangedGray );
 	cvZero( g_imgBinary );
 	cvZero( g_imgHand );
 
-	// REAL SENSE ì—ì„œ ì‚¬ìš©í•  ë©”ëª¨ë¦¬ ì´ˆê¸°í™”
+	// REAL SENSE ¿¡¼­ »ç¿ëÇÒ ¸Þ¸ð¸® ÃÊ±âÈ­
 	g_vertices = new PXCPoint3DF32[IMAGE_WIDTH * IMAGE_HEIGHT];
 	//g_buffer = new pxcI32[ IMAGE_WIDTH * IMAGE_HEIGHT ];
 
 	puts( "Program Initilization is completed" );
 }
 
-// REALSENSE ì¹´ë©”ë¼ ì´ˆê¸°í™”
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// REALSENSE Ä«¸Þ¶ó ÃÊ±âÈ­
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void InitRealSense()
 {
 	puts( "REALSENSE Camera is Initilizing" );	    
@@ -148,7 +148,7 @@ void InitRealSense()
 	g_cm->SetFileName(g_cmdl.m_recordedFile, g_cmdl.m_bRecord);
 	if (g_cmdl.m_sdname) g_cm->FilterByDeviceInfo(g_cmdl.m_sdname,0,0);
 		
-	// ìŠ¤íŠ¸ë¦¼ í˜•ì‹ì„ Depth íƒ€ìž…ìœ¼ë¡œ, ì§€ì •ëœ ì´ë¯¸ì§€ í¬ê¸°ì™€ FPSë¡œ ë°›ì•„ì˜´
+	// ½ºÆ®¸² Çü½ÄÀ» Depth Å¸ÀÔÀ¸·Î, ÁöÁ¤µÈ ÀÌ¹ÌÁö Å©±â¿Í FPS·Î ¹Þ¾Æ¿È
 	g_pp->EnableStream(PXCCapture::STREAM_TYPE_DEPTH, IMAGE_WIDTH, IMAGE_HEIGHT, (pxcF32)g_nFPS );
 
 	/* Initializes the pipeline */
@@ -166,22 +166,22 @@ void InitRealSense()
 	/* Set mirror mode */
 	if (g_cmdl.m_bMirror) {
 		device->SetMirrorMode(PXCCapture::Device::MirrorMode::MIRROR_MODE_HORIZONTAL);
-	} else {	// ì‹¤í–‰ë¨
+	} else {	// ½ÇÇàµÊ
 		//device->SetMirrorMode(PXCCapture::Device::MirrorMode::MIRROR_MODE_DISABLED);
 		if( g_nFlagMirrorDepth == TRUE )
-			device->SetMirrorMode(PXCCapture::Device::MirrorMode::MIRROR_MODE_HORIZONTAL);		// ì¢Œìš° ë°˜ì „
+			device->SetMirrorMode(PXCCapture::Device::MirrorMode::MIRROR_MODE_HORIZONTAL);		// ÁÂ¿ì ¹ÝÀü
 	}
 
-	// í”„ë¡œì ì…˜ ì‚¬ìš©í•˜ê¸° ìœ„í•´ í”„ë¡œì ì…˜ì„ ìƒì„±
+	// ÇÁ·ÎÁ§¼Ç »ç¿ëÇÏ±â À§ÇØ ÇÁ·ÎÁ§¼ÇÀ» »ý¼º
 	g_projection = device->CreateProjection();
 	//g_renderd.m_projection = device->CreateProjection();
 
 	puts( "REALSENSE Camera Initilization is completed" );
 }
 
-// REALSENSE ì¹´ë©”ë¼ì—ì„œ Depth í•œ í”„ë ˆìž„ ë°›ì•„ì˜´
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// REALSENSE Ä«¸Þ¶ó¿¡¼­ Depth ÇÑ ÇÁ·¹ÀÓ ¹Þ¾Æ¿È
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void GetDepthFrame()
 {
 	//g_pp->EnableBlob();
@@ -210,7 +210,7 @@ void GetDepthFrame()
 				pxcStatus sts = g_projection->QueryVertices( sample->depth, g_vertices );
 				if (sts >= PXC_STATUS_NO_ERROR) 
 				{
-					// ë²„í‹°ìŠ¤ ì •ë³´ì—ì„œ Zê°’ì„ ê¸°ì¤€ìœ¼ë¡œ Depth ë§µì„ êµ¬ì„±(ê±°ë¦¬ì— ëŒ€í•œ mmìœ¼ë¡œ í‘œì‹œë˜ë©° 200 ~ 1200 ì‚¬ì´ ë²”ìœ„ë¥¼ ê°€ì§€ë¯€ë¡œ 16Bit ë³€ìˆ˜ì— ì €ìž¥ í›„ 8Bit ë³€ìˆ˜ë¡œ ë³€í™˜í•´ì•¼í•¨)
+					// ¹öÆ¼½º Á¤º¸¿¡¼­ Z°ªÀ» ±âÁØÀ¸·Î Depth ¸ÊÀ» ±¸¼º(°Å¸®¿¡ ´ëÇÑ mmÀ¸·Î Ç¥½ÃµÇ¸ç 200 ~ 1200 »çÀÌ ¹üÀ§¸¦ °¡Áö¹Ç·Î 16Bit º¯¼ö¿¡ ÀúÀå ÈÄ 8Bit º¯¼ö·Î º¯È¯ÇØ¾ßÇÔ)
 					cvZero( g_imgDepth );
 					for( int y = 0; y < IMAGE_HEIGHT; y++ ) {
 						for( int x = 0; x < IMAGE_WIDTH; x++ ) {
@@ -232,20 +232,20 @@ void GetDepthFrame()
 }
 
 
-// Depth ì´ë¯¸ì§€ë¥¼ ê±°ë¦¬ì— ë”°ë¥¸ íŒ€í‘œì¤€ 8Bit Depth ì´ë¯¸ì§€ë¡œ ë³€í™˜
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// Depth ÀÌ¹ÌÁö¸¦ °Å¸®¿¡ µû¸¥ ÆÀÇ¥ÁØ 8Bit Depth ÀÌ¹ÌÁö·Î º¯È¯
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void GetDepthRanged()
 {
 	for( int y = 0; y < IMAGE_HEIGHT; y++ )
 	{
 		for( int x = 0; x < IMAGE_WIDTH; x++ )
 		{
-			// Raw Depth ëª¨ë“  í”½ì…€ì„ ëŒë©° íŒ€í‘œì¤€ 8Bit Depth ì´ë¯¸ì§€ë¡œ ë³€í™˜
+			// Raw Depth ¸ðµç ÇÈ¼¿À» µ¹¸ç ÆÀÇ¥ÁØ 8Bit Depth ÀÌ¹ÌÁö·Î º¯È¯
 			unsigned short val = GET2D16U( g_imgDepth, x, y );
 			if( val && g_uRangeMin <= val &&  val <= g_uRangeMax )
 			{
-				GET2D8U( g_imgDepthRangedGray, x, y ) = 255 - (int)( (float)( val - g_uRangeMin ) / ( g_uRangeMax - g_uRangeMin ) * 254 );	// Depth ì´ë¯¸ì§€ ì •ê·œí™”(ê°€ê¹Œìš¸ ìˆ˜ë¡ ë°ì•„ì§)
+				GET2D8U( g_imgDepthRangedGray, x, y ) = 255 - (int)( (float)( val - g_uRangeMin ) / ( g_uRangeMax - g_uRangeMin ) * 254 );	// Depth ÀÌ¹ÌÁö Á¤±ÔÈ­(°¡±î¿ï ¼ö·Ï ¹à¾ÆÁü)
 			}
 			else
 				GET2D8U( g_imgDepthRangedGray, x, y ) = 0;
@@ -254,14 +254,14 @@ void GetDepthRanged()
 }
 
 
-// í”„ë¡œê·¸ëž¨ ì¢…ë£Œí•  ë•Œ ë³€ìˆ˜ ë©”ëª¨ë¦¬ í•´ì œí•˜ê¸° ìœ„í•´
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// ÇÁ·Î±×·¥ Á¾·áÇÒ ¶§ º¯¼ö ¸Þ¸ð¸® ÇØÁ¦ÇÏ±â À§ÇØ
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void ExitProgram()
 {
 	puts( "ExitProgram" );	
 
-	// ë³€ìˆ˜ ë©”ëª¨ë¦¬ í•´ì œ
+	// º¯¼ö ¸Þ¸ð¸® ÇØÁ¦
 	cvReleaseImage( &g_imgDepth );
 	cvReleaseImage( &g_imgDepthRangedGray );
 	cvReleaseImage( &g_imgBinary );
@@ -272,16 +272,16 @@ void ExitProgram()
 }
 
 
-// OpenCV ì´ë¯¸ì§€ ë°°ì—´ì—ì„œ í‚¤ê°’ ìž…ë ¥ ë°›ìŒ
-// ìž…ë ¥ ë³€ìˆ˜ : í‚¤ ê°’
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// OpenCV ÀÌ¹ÌÁö ¹è¿­¿¡¼­ Å°°ª ÀÔ·Â ¹ÞÀ½
+// ÀÔ·Â º¯¼ö : Å° °ª
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void ProcessKeyEvent( int key )
 {
 	switch(key)
 	{
-	case VK_ESCAPE:			// Escê°€ ìž…ë ¥ë˜ë©´
+	case VK_ESCAPE:			// Esc°¡ ÀÔ·ÂµÇ¸é
 		puts( "Esc" );
-		g_bRun = false;		// Run ë³€ìˆ˜ False
+		g_bRun = false;		// Run º¯¼ö False
 		break;
 	default:
 		break;
@@ -289,25 +289,25 @@ void ProcessKeyEvent( int key )
 }
 
 
-// 8Bit Depth ì´ë¯¸ì§€ë¥¼ 2ì§„ ì´ë¯¸ì§€ë¡œ ë³€í™˜
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// 8Bit Depth ÀÌ¹ÌÁö¸¦ 2Áø ÀÌ¹ÌÁö·Î º¯È¯
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void GetBinary()
 {
-	// 8Bit Depth ì´ë¯¸ì§€ë¥¼ ìž„ê³„ì¹˜ë¥¼ ì ìš©í•˜ì—¬ 2ì§„ ì´ë¯¸ì§€ë¡œ ë³€í™˜
+	// 8Bit Depth ÀÌ¹ÌÁö¸¦ ÀÓ°èÄ¡¸¦ Àû¿ëÇÏ¿© 2Áø ÀÌ¹ÌÁö·Î º¯È¯
 	//cvSmooth( g_imgDepth, g_imgDepth, CV_MEDIAN, 3, 3 );
 	cvThreshold( g_imgDepthRangedGray, g_imgBinary, g_uThresholdMax, 255, CV_THRESH_TOZERO_INV );
 	cvThreshold( g_imgBinary, g_imgBinary, g_uThresholdMin, 255, CV_THRESH_BINARY );
 }
 
 
-// í˜„ìž¬ ì´ë¯¸ì§€ë“¤ì„ ë³´ì—¬ì¤Œ
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// ÇöÀç ÀÌ¹ÌÁöµéÀ» º¸¿©ÁÜ
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void ImageView()
 {
-	cvPutText( g_imgDepthRangedGray, g_strFps, cvPoint(250, 40), &cvFont(2.5, 2.5), cvScalar(255) );		// FPS ìˆ˜ì¹˜ ë³´ì—¬ì¤Œ
-	cvShowImage( "DepthMap-SR300", g_imgDepthRangedGray );		// Depth ì´ë¯¸ì§€ë¥¼ ê±°ë¦¬ì— ë”°ë¥¸ íŒ€í‘œì¤€ 8Bit Depth ì´ë¯¸ì§€ë¡œ ë³€í™˜ëœ ì´ë¯¸ì§€ë¥¼ ë³´ì—¬ì¤Œ
+	cvPutText( g_imgDepthRangedGray, g_strFps, cvPoint(250, 40), &cvFont(2.5, 2.5), cvScalar(255) );		// FPS ¼öÄ¡ º¸¿©ÁÜ
+	cvShowImage( "DepthMap-SR300", g_imgDepthRangedGray );		// Depth ÀÌ¹ÌÁö¸¦ °Å¸®¿¡ µû¸¥ ÆÀÇ¥ÁØ 8Bit Depth ÀÌ¹ÌÁö·Î º¯È¯µÈ ÀÌ¹ÌÁö¸¦ º¸¿©ÁÜ
 
 	cvFlip(g_imgBinary, g_imgBinary, 1);
 
@@ -318,14 +318,14 @@ void ImageView()
 
 
 	cvDilate(g_imgBinary, g_imgBinary, 0,2);
-	cvDistTransform(g_imgBinary, dst, CV_DIST_L2,3);  //ê²°ê³¼ëŠ” CV_32SC1 íƒ€ìž…
+	cvDistTransform(g_imgBinary, dst, CV_DIST_L2,3);  //°á°ú´Â CV_32SC1 Å¸ÀÔ
 
 	
 	cvWaitKey(1);
-	//ê±°ë¦¬ ë³€í™˜ í–‰ë ¬ì—ì„œ ê°’(ê±°ë¦¬)ì´ ê°€ìž¥ í° í”½ì…€ì˜ ì¢Œí‘œì™€, ê°’ì„ ì–»ì–´ì˜¨ë‹¤.
-	CvPoint maxIdx;    //ì¢Œí‘œ ê°’ì„ ì–»ì–´ì˜¬ ë°°ì—´(í–‰, ì—´ ìˆœìœ¼ë¡œ ì €ìž¥ë¨)
+	//°Å¸® º¯È¯ Çà·Ä¿¡¼­ °ª(°Å¸®)ÀÌ °¡Àå Å« ÇÈ¼¿ÀÇ ÁÂÇ¥¿Í, °ªÀ» ¾ò¾î¿Â´Ù.
+	CvPoint maxIdx;    //ÁÂÇ¥ °ªÀ» ¾ò¾î¿Ã ¹è¿­(Çà, ¿­ ¼øÀ¸·Î ÀúÀåµÊ)
 	double max;
-	cvMinMaxLoc(dst, 0, &max, 0,0);   //ìµœì†Œê°’ì€ ì‚¬ìš© X
+	cvMinMaxLoc(dst, 0, &max, 0,0);   //ÃÖ¼Ò°ªÀº »ç¿ë X
 
 	cvCvtScale(dst, dist8u_image, 255. / max);
 	cvThreshold(dist8u_image, bi_dist, 80, 255, CV_THRESH_BINARY);
@@ -387,7 +387,7 @@ void ImageView()
 	}
 
 
-	//ë§ˆìš°ìŠ¤ ì´ë²¤íŠ¸ ì‹¤í–‰
+	//¸¶¿ì½º ÀÌº¥Æ® ½ÇÇà
 	mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_ABSOLUTE, pt.x * 4 - 600, pt.y * 4 - 600, 0, ::GetMessageExtraInfo());
 	mouse_event(MOUSEEVENTF_LEFTUP | MOUSEEVENTF_ABSOLUTE, pt.x * 4 - 600, pt.y * 4 - 600, 0, ::GetMessageExtraInfo());
 
@@ -402,9 +402,9 @@ void ImageView()
 
 	//mouse_event();
 
-	cvShowImage( "Binary", g_imgBinary );						// ì´ì§„ ì´ë¯¸ì§€ë¥¼ ì¶œë ¥í•¨
-	//cvShowImage( "Hand", g_imgHand );							// ì† ì´ë¯¸ì§€ë¥¼ ì¶œë ¥í•¨
-	ProcessKeyEvent(cvWaitKey(1));								// 1ms ë”œë ˆì´(ë”œë ˆì´ ì•ˆì£¼ë©´ ì´ë¯¸ì§€ ì¶œë ¥ ì•ˆë¨)
+	cvShowImage( "Binary", g_imgBinary );						// ÀÌÁø ÀÌ¹ÌÁö¸¦ Ãâ·ÂÇÔ
+	//cvShowImage( "Hand", g_imgHand );							// ¼Õ ÀÌ¹ÌÁö¸¦ Ãâ·ÂÇÔ
+	ProcessKeyEvent(cvWaitKey(1));								// 1ms µô·¹ÀÌ(µô·¹ÀÌ ¾ÈÁÖ¸é ÀÌ¹ÌÁö Ãâ·Â ¾ÈµÊ)
 
 	cvReleaseImage(&dst);
 	cvReleaseImage(&dist8u_image);
@@ -412,23 +412,23 @@ void ImageView()
 }
 
 
-// Main ë£¨í”„ë¥¼ í•œë²ˆ ë„ëŠ”ë° ê±¸ë¦¬ëŠ” ì‹œê°„ì„ ê³„ì‚°
-// ìž…ë ¥ ë³€ìˆ˜ : ì—†ìŒ
-// ì¶œë ¥ ë³€ìˆ˜ : ì—†ìŒ
+// Main ·çÇÁ¸¦ ÇÑ¹ø µµ´Âµ¥ °É¸®´Â ½Ã°£À» °è»ê
+// ÀÔ·Â º¯¼ö : ¾øÀ½
+// Ãâ·Â º¯¼ö : ¾øÀ½
 void CalcTime()
 {
-	// ì‹œê°„ ê³„ì‚°ì— í•„ìš”í•œ ë³€ìˆ˜ ì„ ì–¸
-	static int nTimeAvg = 0;	// í‰ê·  ì‹œê°„ ì €ìž¥ ë³€ìˆ˜
-	static int nTimeCnt = 0;	// í‰ê·  ì‹œê°„ ê³„ì‚°ì„ ìœ„í•œ ì¹´ìš´íŠ¸ ë³€ìˆ˜
+	// ½Ã°£ °è»ê¿¡ ÇÊ¿äÇÑ º¯¼ö ¼±¾ð
+	static int nTimeAvg = 0;	// Æò±Õ ½Ã°£ ÀúÀå º¯¼ö
+	static int nTimeCnt = 0;	// Æò±Õ ½Ã°£ °è»êÀ» À§ÇÑ Ä«¿îÆ® º¯¼ö
 
-	// Main ë£¨í”„ë¥¼ í•œë²ˆ ë„ëŠ”ë° ê±¸ë¦¬ëŠ” ì‹œê°„ì„ ê³„ì‚°
-	g_nTime = GetTickCount() - g_nTime;						// ì°¨ë¶„ ì‹œê°„ì„ ì €ìž¥
-	nTimeAvg += g_nTime;									// ì°¨ë¶„ ì‹œê°„ì„ ëˆ„ì 
-	nTimeCnt++;												// ì‹œê°„ ì¹´ìš´íŠ¸ ì¦ê°€
-	if( nTimeAvg > 500 ) {									// ëˆ„ì ëœ ì°¨ë¶„ ì‹œê°„ì´ ìž„ê³„ì¹˜ ë³´ë‹¤ í¬ë©´
-		g_nTime = int( nTimeAvg / nTimeCnt );				// í‰ê·  ì‹œê°„ mmì„ ê³„ì‚°
-		sprintf( g_strFps, "%.2ffps", 1000.0f / g_nTime );	// FSP í…ìŠ¤íŠ¸ ì €ìž¥
-		nTimeCnt = 0;			nTimeAvg = 0;				// ì‹œê°„ ì„¤ì • ì´ˆê¸°í™”
+	// Main ·çÇÁ¸¦ ÇÑ¹ø µµ´Âµ¥ °É¸®´Â ½Ã°£À» °è»ê
+	g_nTime = GetTickCount() - g_nTime;						// Â÷ºÐ ½Ã°£À» ÀúÀå
+	nTimeAvg += g_nTime;									// Â÷ºÐ ½Ã°£À» ´©Àû
+	nTimeCnt++;												// ½Ã°£ Ä«¿îÆ® Áõ°¡
+	if( nTimeAvg > 500 ) {									// ´©ÀûµÈ Â÷ºÐ ½Ã°£ÀÌ ÀÓ°èÄ¡ º¸´Ù Å©¸é
+		g_nTime = int( nTimeAvg / nTimeCnt );				// Æò±Õ ½Ã°£ mmÀ» °è»ê
+		sprintf( g_strFps, "%.2ffps", 1000.0f / g_nTime );	// FSP ÅØ½ºÆ® ÀúÀå
+		nTimeCnt = 0;			nTimeAvg = 0;				// ½Ã°£ ¼³Á¤ ÃÊ±âÈ­
 	}
 }
 
